@@ -13,9 +13,14 @@ Mid-call and not sure where to start? Match the symptom to a section below.
 | Machine seems offline / not responding | [2. Initial Triage](#2-initial-triage-the-info-tab) | Info |
 | System feels laggy, apps crashing | [2. Initial Triage](#2-initial-triage-the-info-tab) → [Disk Rescue](#script-library) | Info → Scripts |
 | User needs an app installed/removed | [3. Resolving Software Requests](#3-resolving-software-requests-the-packages-tab) | Packages |
-| An app won't respond / is frozen | [4. Fixing Frozen Applications](#4-fixing-frozen-applications-the-processes-tab) | Processes |
-| Need to run a diagnostic or repair tool | [5. Running Remote Repairs](#5-running-remote-repairs-the-scripts-tab) | Scripts |
-| User reports general slowness | [6. Verifying Hardware Constraints](#6-verifying-hardware-constraints-the-hardware-tab) | Hardware |
+| Push or remove an app on many/all machines at once | [Installing Software Fleet-Wide](#installing-or-removing-software-on-multiple-machines) | Packages |
+| Set up automatic/recurring security patching | [4. Automating Security Patches](#4-automating-security-patches-upgrade-profiles) | Profiles |
+| An app won't respond / is frozen | [5. Fixing Frozen Applications](#5-fixing-frozen-applications-the-processes-tab) | Processes |
+| Need to see every running process, sorted, and kill one remotely | [5. Fixing Frozen Applications](#5-fixing-frozen-applications-the-processes-tab) | Processes |
+| Need to run a diagnostic or repair tool | [6. Running Remote Repairs](#6-running-remote-repairs-the-scripts-tab) | Scripts |
+| User reports general slowness | [7. Verifying Hardware Constraints](#7-verifying-hardware-constraints-the-hardware-tab) | Hardware |
+| Need full hardware specs / asset info for a machine | [7. Verifying Hardware Constraints](#7-verifying-hardware-constraints-the-hardware-tab) | Hardware |
+| Want proactive alerts (offline, reboot needed, security updates) | [8. Automated Monitoring & Alerts](#8-automated-monitoring--alerts) | Monitoring / Alerts |
 | Laptop battery draining fast / won't hold charge | [Script Library](#script-library) (`DIAG-BatteryReport`) | Scripts |
 | Wi-Fi/internet connectivity issues | [Script Library](#script-library) (`DIAG-NetworkDiagnostic`) | Scripts |
 | `apt`/software updates failing or stuck | [Script Library](#script-library) (`FIX-PackageManager`) | Scripts |
@@ -45,7 +50,7 @@ Always check the **Info** tab first before asking the user complex questions. Th
 
 Use this tab when a user needs an application installed (like Zoom or LibreOffice) or if an application is failing to update.
 
-**How to Install or Remove Software:**
+### Installing or Removing Software on a Single Machine
 
 1. Click the **Packages** tab.
 2. In the search box, type the name of the software (e.g., "zoom").
@@ -54,20 +59,48 @@ Use this tab when a user needs an application installed (like Zoom or LibreOffic
 5. Click **Apply Changes** at the bottom of the page.
 6. Navigate to the **Activities** tab in the top menu to monitor the installation progress. Let the user know the software will appear in their applications menu shortly.
 
-## 4. Fixing Frozen Applications (The "Processes" Tab)
+### Installing or Removing Software on Multiple Machines
 
-Use this tab when a user reports that an application is completely frozen and they cannot close it.
+Use this when a change needs to go out fleet-wide (e.g., every refurbished machine should ship with LibreOffice) instead of one beneficiary's computer at a time.
+
+1. On the **Computers** tab, select the machines you want to target — either check them individually, or filter by an existing **tag**/**access group** (e.g., all machines tagged `kramden-fleet`).
+2. With multiple computers selected, open the **Packages** page the same way as a single machine; search for the package and choose **Install** or **Remove**.
+3. Click **Apply Changes**. This queues one package activity per selected machine — machines that are currently offline will pick up the change automatically the next time they check in, so you don't need everyone online at once.
+4. For a change that should *stay* enforced going forward (not just a one-time push), create a **Package Profile** instead: under **Profiles**, define the packages that must be present (or must not be present) and associate the profile with an access group. Landscape then continuously keeps every machine in that group compliant — installing the package on any new or existing machine that's missing it — without you having to re-run the install manually.
+
+## 4. Automating Security Patches (Upgrade Profiles)
+
+Rather than manually installing updates machine-by-machine, use an **Upgrade Profile** to keep the whole fleet patched on a recurring schedule.
+
+**How to set one up:**
+
+1. Go to **Profiles** and create a new **Upgrade Profile**.
+2. Associate it with the access group / tag of machines it should apply to (e.g., `kramden-fleet`).
+3. Choose the update scope:
+   - **Security only** — installs only patches tied to Ubuntu Security Notices (USNs), which are often mapped to CVEs. This is the safer default for unattended, recurring runs.
+   - **All updates** — installs every available package upgrade, not just security fixes.
+4. Set a weekly schedule (which days and what time window updates are allowed to run). You can randomize the exact delivery time across the fleet so machines don't all hammer the update servers at once.
+5. Save the profile. From then on, Landscape applies matching updates automatically to every machine in that group during its scheduled window — no manual Packages-tab action needed.
+
+**Note:** Kernel security patches normally require a reboot to take effect — that's what the "Reboot required" flag on the [Info tab](#2-initial-triage-the-info-tab) is telling you. Subscribing to the `SecurityUpgradesAlert` and `ComputerRebootAlert` (see [8. Automated Monitoring & Alerts](#8-automated-monitoring--alerts)) will tell you which machines still need a security update applied or a reboot to finish one.
+
+## 5. Fixing Frozen Applications (The "Processes" Tab)
+
+Use this tab when a user reports that an application is completely frozen and they cannot close it, or any time you need to see **every process currently running on the machine** — not just the app the user opened, but background services too.
+
+**Viewing and Sorting the Process List:**
+
+1. Click the **Processes** tab. This lists every running process as of the machine's last check-in with Landscape (it's a live snapshot, not a continuous real-time feed — reopen the tab to refresh it).
+2. Click any column header — **PID**, process **Name**, **User**, **% CPU**, or **% RAM** — to sort by that column, ascending or descending. Sorting by % CPU or % RAM is the fastest way to spot the unresponsive or runaway process.
 
 **How to Force-Close an App:**
 
-1. Click the **Processes** tab.
-2. Sort the list by clicking the **% CPU** or **% RAM** column headers to easily find the unresponsive application.
-3. Check the box next to the frozen process (e.g., "firefox" or "zoom").
-4. In the dropdown menu labeled "Action," select **Send SIGTERM** (this asks the program to close nicely).
-5. Click **Apply**.
-6. If the application still does not close after 30 seconds, repeat the steps but select **Send SIGKILL** (this forces the program to terminate immediately).
+1. Check the box next to the frozen process (e.g., "firefox" or "zoom").
+2. In the dropdown menu labeled "Action," select **Send SIGTERM** (this asks the program to close nicely).
+3. Click **Apply**.
+4. If the application still does not close after 30 seconds, repeat the steps but select **Send SIGKILL** (this forces the program to terminate immediately).
 
-## 5. Running Remote Repairs (The "Scripts" Tab)
+## 6. Running Remote Repairs (The "Scripts" Tab)
 
 Use this tab to run pre-approved IT repair and diagnostic scripts in the background.
 
@@ -82,19 +115,48 @@ Use this tab to run pre-approved IT repair and diagnostic scripts in the backgro
 7. A notification will appear at the top of the screen; click the link to go to the **Activities** tab.
 8. Once the script finishes, click on the activity entry to view the exact output/results in your browser.
 
-## 6. Verifying Hardware Constraints (The "Hardware" Tab)
+## 7. Verifying Hardware Constraints (The "Hardware" Tab)
 
-Use this tab when a user reports general slowness, or if you need to determine if a machine meets the requirements for a specific piece of software.
+Use this tab when a user reports general slowness, when you need to determine if a machine meets the requirements for a specific piece of software, or for general asset tracking/verification against the refurbishing database.
 
-**What to check:**
+The Hardware tab reports everything Landscape can detect on the machine:
 
-- **Memory (RAM):** Confirm the total installed memory. If it is 4GB or less, advise the user to keep fewer browser tabs open or purchase more RAM.
-- **Storage:** Check the total disk size. If it is a 120GB drive, advise the user to store large files on a USB drive, in cloud storage, and inform them of the option to purchase a larger drive.
-- **Processors:** Verify the CPU model to ensure it matches the original refurbishing database records.
+- **Processor:** Vendor, model, core count, clock speed, and CPU flags.
+- **Memory (RAM):** Total installed memory and swap. If total RAM is 4GB or less, advise the user to keep fewer browser tabs open or purchase more RAM.
+- **Storage:** Every disk and partition, with size and mount point. If the primary drive is 120GB or smaller, advise the user to store large files on a USB drive or in cloud storage, and mention the option to purchase a larger drive.
+- **Network:** All network interfaces (Wi-Fi/Ethernet) with their MAC addresses.
+- **PCI & USB devices:** Everything currently connected or built in (webcams, card readers, docking stations, etc.) — useful for confirming a reported peripheral is actually recognized by the OS.
+- **BIOS/firmware:** Vendor and version — combine with the CPU model to cross-check the machine against the original refurbishing database records and confirm no parts were swapped or mismatched.
+- **Video & audio:** Onboard graphics and sound hardware.
+
+*Asset tracking tip:* Pair the Hardware tab's BIOS/serial-level detail with the Computers tab's K-Number tag when auditing donated inventory — this catches cases where a machine's physical parts (motherboard, drive) don't match what's on record for that K-Number.
+
+## 8. Automated Monitoring & Alerts
+
+Landscape gives you two related but separate tools for staying ahead of problems instead of waiting for a beneficiary to call in: **Monitoring graphs** (visual trends) and **Alerts** (email notifications on specific events).
+
+### Monitoring Graphs
+
+Under a computer's **Monitoring** page you can view graphs of CPU load, memory use, disk use, temperature, and network traffic over a selectable timeframe (1 day, 3 days, 1 week, or 4 weeks). You can also build **custom graphs** from your own collected metrics if you need to track something not covered by the defaults. These graphs are for visual trend-spotting — checking whether a specific machine's disk usage is climbing over time, for example — rather than automatic notification.
+
+### Alerts (Email Notifications)
+
+Alerts notify you automatically by email when a specific tracked event happens, without you having to go look. Configure subscriptions under **Account Settings → Alerts**. The alert types most relevant to day-to-day support are:
+
+| Alert | Fires when |
+| --- | --- |
+| `ComputerOfflineAlert` | A machine hasn't checked in with Landscape in the last 5 minutes. |
+| `ComputerRebootAlert` | A machine needs a reboot to finish applying an update (e.g., a new kernel). |
+| `SecurityUpgradesAlert` | Security updates are available and waiting to be applied on a machine. |
+| `PackageUpgradesAlert` | Any (non-security) package updates are available. |
+| `PackageReporterAlert` | A machine's `apt-get update` is failing, so Landscape can't see accurate package status for it. |
+| `UnapprovedActivitiesAlert` | An activity (like a script run or package change) is queued and waiting on manual approval. |
+
+**Caution:** As of this writing, Landscape does not ship a built-in "alert me when free disk space drops below X" or generic custom-metric-threshold alert — disk, memory, and load are available as **graphs** (above) but not as configurable numeric-threshold alerts. Until/unless that's added, the practical way to stay ahead of low-disk-space issues is to (a) subscribe to `ComputerOfflineAlert` and `SecurityUpgradesAlert` so you're not blind on fleet health, (b) periodically skim the Monitoring graphs across the fleet, and (c) rely on the "Root filesystem full" check that's already part of [2. Initial Triage](#2-initial-triage-the-info-tab) on every support call. If proactive disk-space paging becomes a hard requirement, that would need a custom solution (e.g., a scheduled `DIAG-SystemSnapshot`-style script paired with external notification) rather than native Landscape alerting.
 
 ## Script Library
 
-These are the pre-approved scripts available in the **Scripts** tab (see [5. Running Remote Repairs](#5-running-remote-repairs-the-scripts-tab)). Run diagnostics first to confirm the problem, then run fixes if needed.
+These are the pre-approved scripts available in the **Scripts** tab (see [6. Running Remote Repairs](#6-running-remote-repairs-the-scripts-tab)). Run diagnostics first to confirm the problem, then run fixes if needed.
 
 | Script | Type | What it does | When to run it |
 | --- | --- | --- | --- |
