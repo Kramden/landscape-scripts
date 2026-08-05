@@ -63,7 +63,7 @@ Use this tab when a user needs an application installed (like Zoom or LibreOffic
 
 Use this when a change needs to go out fleet-wide (e.g., every refurbished machine should ship with LibreOffice) instead of one beneficiary's computer at a time.
 
-1. On the **Computers** tab, select the machines you want to target — either check them individually, or filter by an existing **tag**/**access group** (e.g., all machines tagged `kramden-fleet`).
+1. On the **Computers** tab, select the machines you want to target — either check them individually, or filter by an existing **tag**/**access group** (e.g., all machines tagged `KTS`).
 2. With multiple computers selected, open the **Packages** page the same way as a single machine; search for the package and choose **Install** or **Remove**.
 3. Click **Apply Changes**. This queues one package activity per selected machine — machines that are currently offline will pick up the change automatically the next time they check in, so you don't need everyone online at once.
 4. For a change that should *stay* enforced going forward (not just a one-time push), create a **Package Profile** instead: under **Profiles**, define the packages that must be present (or must not be present) and associate the profile with an access group. Landscape then continuously keeps every machine in that group compliant — installing the package on any new or existing machine that's missing it — without you having to re-run the install manually.
@@ -75,7 +75,7 @@ Rather than manually installing updates machine-by-machine, use an **Upgrade Pro
 **How to set one up:**
 
 1. Go to **Profiles** and create a new **Upgrade Profile**.
-2. Associate it with the access group / tag of machines it should apply to (e.g., `kramden-fleet`).
+2. Associate it with the access group / tag of machines it should apply to (e.g., `KTS`).
 3. Choose the update scope:
    - **Security only** — installs only patches tied to Ubuntu Security Notices (USNs), which are often mapped to CVEs. This is the safer default for unattended, recurring runs.
    - **All updates** — installs every available package upgrade, not just security fixes.
@@ -107,7 +107,7 @@ Use this tab to run pre-approved IT repair and diagnostic scripts in the backgro
 **How to Execute a Script:**
 
 1. Click the **Scripts** tab.
-2. Under "Select a script to run," choose the appropriate tool from the Script Library (e.g., "FIX-DiskRescue" or "DIAG-SystemSnapshot").
+2. Under "Select a script to run," choose the appropriate tool from the Script Library (e.g., `FIX-DiskRescue` or `DIAG-SystemSnapshot`).
 3. Leave the execution user as "root" unless the specific SOP for that script says otherwise.
 4. If the script accepts a parameter (e.g., `FIX-PasswordReset` takes an optional username), enter it in the script's parameter/arguments field.
 5. Set a timeout of "60 seconds" to ensure the script doesn't hang indefinitely.
